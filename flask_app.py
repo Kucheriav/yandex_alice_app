@@ -2,6 +2,7 @@ from flask import Flask, request
 import logging
 import json
 import os
+from random import randint
 
 
 app = Flask(__name__)
@@ -48,18 +49,10 @@ def handle_dialog(req, res):
         # Это новый пользователь.
         # Инициализируем сессию и поприветствуем его.
         # Запишем подсказки, которые мы ему покажем в первый раз
-
-        sessionStorage[user_id] = {
-            'suggests': [
-                "Не хочу.",
-                "Не буду.",
-                "Отстань!",
-            ]
-        }
+        sessionStorage[user_id] = str(randint(1000, 9999))
         # Заполняем текст ответа
-        res['response']['text'] = 'Привет! Купи слона!'
+        res['response']['text'] = 'Привет! Угадай число!'
         # Получим подсказки
-        res['response']['buttons'] = get_suggests(user_id)
         return
 
     # Сюда дойдем только, если пользователь не новый,
@@ -70,47 +63,27 @@ def handle_dialog(req, res):
     # Если он написал 'ладно', 'куплю', 'покупаю', 'хорошо',
     # то мы считаем, что пользователь согласился.
     # Подумайте, всё ли в этом фрагменте написано "красиво"?
-    if req['request']['original_utterance'].lower() in [
-        'ладно',
-        'куплю',
-        'покупаю',
-        'хорошо'
-    ]:
-        # Пользователь согласился, прощаемся.
-        res['response']['text'] = 'Слона можно найти на Яндекс.Маркете!'
+    user = str(req['request']['original_utterance'])
+    bulls = cows = 0
+    if not user.isdigit():
+        res['response']['text'] = 'Ne chislo'
+        return
+    if not (1000 <= int(user) <= 9999):
+        res['response']['text'] = 'неподходящее число'
+        return
+    for i in range(len(user)):
+        if user[i] == sessionStorage[user_id][i]:
+            bulls += 1
+        if user[i] in sessionStorage[user_id]:
+            cows += 1
+    if cows == 4 and bulls == 4:
+        res['response']['text'] = 'Ugadal!'
         res['response']['end_session'] = True
         return
-
-    # Если нет, то убеждаем его купить слона!
-    res['response']['text'] = \
-        f"Все говорят '{req['request']['original_utterance']}', а ты купи слона!"
-    res['response']['buttons'] = get_suggests(user_id)
+    res['response']['text'] = f'cows - {cows}; bulls - {bulls}'
+    return
 
 
-# Функция возвращает две подсказки для ответа.
-def get_suggests(user_id):
-    session = sessionStorage[user_id]
-
-    # Выбираем две первые подсказки из массива.
-    suggests = [
-        {'title': suggest, 'hide': True}
-        for suggest in session['suggests'][:2]
-    ]
-
-    # Убираем первую подсказку, чтобы подсказки менялись каждый раз.
-    session['suggests'] = session['suggests'][1:]
-    sessionStorage[user_id] = session
-
-    # Если осталась только одна подсказка, предлагаем подсказку
-    # со ссылкой на Яндекс.Маркет.
-    if len(suggests) < 2:
-        suggests.append({
-            "title": "Ладно",
-            "url": "https://market.yandex.ru/search?text=слон",
-            "hide": True
-        })
-
-    return suggests
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
