@@ -54,7 +54,7 @@ def handle_dialog(req, res):
         res['response']['text'] = 'Привет! Угадай число!'
         # Получим подсказки
         return
-
+    res['response']['buttons'] = [{'title': 'Сдаюсь', 'hide': True}]
     # Сюда дойдем только, если пользователь не новый,
     # и разговор с Алисой уже был начат
     # Обрабатываем ответ пользователя.
@@ -65,6 +65,10 @@ def handle_dialog(req, res):
     # Подумайте, всё ли в этом фрагменте написано "красиво"?
     user = str(req['request']['original_utterance'])
     bulls = cows = 0
+    if req['request']['original_utterance'] == 'Сдаюсь':
+        res['response']['text'] = f'Слабак! Это было число {sessionStorage[user_id]}'
+        res['response']['end_session'] = True
+        return
     if not user.isdigit():
         res['response']['text'] = 'Ne chislo'
         return
