@@ -62,7 +62,7 @@ def handle_dialog(req, res):
             return
         else:
             sessionStorage['state'] = "NEW_PLAYER"
-            res['response']['text'] = f'Привет, представься, пожалуйста'
+            res['response']['text'] = 'Привет, представься, пожалуйста'
             return
     if sessionStorage['state'] == "NEW_PLAYER":
         db_sess = db_session.create_session()
