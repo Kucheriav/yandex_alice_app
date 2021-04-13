@@ -2,7 +2,7 @@ from flask import Flask, request
 import logging
 import json
 import os
-from random import randint
+from random import sample
 
 
 app = Flask(__name__)
@@ -31,9 +31,6 @@ def main():
         }
     }
 
-    # Отправляем request.json и response в функцию handle_dialog.
-    # Она сформирует оставшиеся поля JSON, которые отвечают
-    # непосредственно за ведение диалога
     handle_dialog(request.json, response)
 
     logging.info(f'Response:  {response!r}')
@@ -46,46 +43,95 @@ def handle_dialog(req, res):
     user_id = req['session']['user_id']
 
     if req['session']['new']:
-        # Это новый пользователь.
-        # Инициализируем сессию и поприветствуем его.
-        # Запишем подсказки, которые мы ему покажем в первый раз
-        sessionStorage[user_id] = str(randint(1000, 9999))
-        # Заполняем текст ответа
-        res['response']['text'] = 'Привет! Угадай число!'
-        # Получим подсказки
+        sessionStorage['user_id'] = user_id
+        sessionStorage['state'] = "SHOW_MENU"
+        res['response']['buttons'] = [
+            {'title': 'Играть', 'hide': False},
+            {'title': 'Правила', 'hide': False},
+            {'title': 'Статистика', 'hide': False},
+            {'title': 'Рекорды', 'hide': False},
+            {'title': 'Завершить', 'hide': False}
+        ]
         return
-    res['response']['buttons'] = [{'title': 'Сдаюсь', 'hide': True}]
-    # Сюда дойдем только, если пользователь не новый,
-    # и разговор с Алисой уже был начат
-    # Обрабатываем ответ пользователя.
-    # В req['request']['original_utterance'] лежит весь текст,
-    # что нам прислал пользователь
-    # Если он написал 'ладно', 'куплю', 'покупаю', 'хорошо',
-    # то мы считаем, что пользователь согласился.
-    # Подумайте, всё ли в этом фрагменте написано "красиво"?
-    user = str(req['request']['original_utterance'])
-    bulls = cows = 0
-    if req['request']['original_utterance'] == 'Сдаюсь':
-        res['response']['text'] = f'Слабак! Это было число {sessionStorage[user_id]}'
-        res['response']['end_session'] = True
+
+    if sessionStorage['state'] == "SHOW_MENU":
+        if req['request']['original_utterance'] == 'Играть':
+            sessionStorage['state'] = "GAME"
+            sessionStorage['round'] = 0
+            sessionStorage['secret_number'] = ''.join(sample(range(10), 4))
+            res['response']['text'] = 'Привет! Я загадала число из 4 неповторяющихся цифр. Попробуй угадать!'
+            return
+        if req['request']['original_utterance'] == 'Правила':
+            res['response']['text'] = 'Нужно отгадать число из четырех разных цифр. Ты пишешь число, а я говорю ' \
+                                      'сколько там "быков" и "коров". "Бык" - цифра встала на свое место. "Корова" -' \
+                                      'цифра где-то есть, не обязательно на своем месте'
+            res['response']['buttons'] = [
+                {'title': 'Играть', 'hide': False},
+                {'title': 'Правила', 'hide': False},
+                {'title': 'Статистика', 'hide': False},
+                {'title': 'Рекорды', 'hide': False},
+                {'title': 'Завершить', 'hide': False}
+            ]
+            return
+        if req['request']['original_utterance'] == 'Статистика':
+            res['response']['text'] = 'Раздел в разработке'
+            res['response']['buttons'] = [
+                {'title': 'Играть', 'hide': False},
+                {'title': 'Правила', 'hide': False},
+                {'title': 'Статистика', 'hide': False},
+                {'title': 'Рекорды', 'hide': False},
+                {'title': 'Завершить', 'hide': False}
+            ]
+            return
+        if req['request']['original_utterance'] == 'Рекорды':
+            res['response']['text'] = 'Раздел в разработке'
+            res['response']['buttons'] = [
+                {'title': 'Играть', 'hide': False},
+                {'title': 'Правила', 'hide': False},
+                {'title': 'Статистика', 'hide': False},
+                {'title': 'Рекорды', 'hide': False},
+                {'title': 'Завершить', 'hide': False}
+            ]
+            return
+        if req['request']['original_utterance'] == 'Завершить':
+            res['response']['text'] = 'До новых встреч!'
+            res['response']['end_session'] = True
+            return
         return
-    if not user.isdigit():
-        res['response']['text'] = 'Ne chislo'
+
+    if sessionStorage['state'] == "GAME":
+        sessionStorage['round'] += 1
+        res['response']['buttons'] = [{'title': 'Сдаюсь', 'hide': True}]
+        guess = str(req['request']['original_utterance'])
+        bulls = cows = 0
+        if req['request']['original_utterance'] == 'Сдаюсь':
+            res['response']['text'] = f'Слабак! Это было число {sessionStorage["secret_number"]}'
+            res['response']['end_session'] = True
+            return
+        if not guess.isdigit():
+            res['response']['text'] = 'Не число'
+            return
+        if not (1000 <= int(guess) <= 9999):
+            res['response']['text'] = 'Неподходящее число'
+            return
+        for i in range(len(guess)):
+            if guess[i] == sessionStorage["secret_number"][i]:
+                bulls += 1
+            if guess[i] in sessionStorage["secret_number"]:
+                cows += 1
+        if cows == 4 and bulls == 4:
+            res['response']['text'] = f'Победа! Ты угадал за {sessionStorage["round"]} попыток'
+            sessionStorage['state'] = "SHOW_MENU"
+            res['response']['buttons'] = [
+                {'title': 'Играть', 'hide': False},
+                {'title': 'Правила', 'hide': False},
+                {'title': 'Статистика', 'hide': False},
+                {'title': 'Рекорды', 'hide': False},
+                {'title': 'Завершить', 'hide': False}
+            ]
+            return
+        res['response']['text'] = f'Коровы - {cows}; быки - {bulls}'
         return
-    if not (1000 <= int(user) <= 9999):
-        res['response']['text'] = 'неподходящее число'
-        return
-    for i in range(len(user)):
-        if user[i] == sessionStorage[user_id][i]:
-            bulls += 1
-        if user[i] in sessionStorage[user_id]:
-            cows += 1
-    if cows == 4 and bulls == 4:
-        res['response']['text'] = 'Ugadal!'
-        res['response']['end_session'] = True
-        return
-    res['response']['text'] = f'cows - {cows}; bulls - {bulls}'
-    return
 
 
 
