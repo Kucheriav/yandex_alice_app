@@ -133,7 +133,8 @@ def handle_dialog(req, res):
             return
         res['response']['text'] = f'Коровы - {cows}; быки - {bulls}'
         return
-
+    res['response']['text'] = 'Я вас не поняла'
+    return
 
 
 if __name__ == '__main__':
