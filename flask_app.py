@@ -57,9 +57,9 @@ def handle_dialog(req, res):
 
     if sessionStorage['state'] == "SHOW_MENU":
         if req['request']['original_utterance'] == 'Играть':
-            #sessionStorage['state'] = "GAME"
+            sessionStorage['state'] = "GAME"
             sessionStorage['round'] = 0
-            sessionStorage['secret_number'] = ''.join(sample(range(10), 4))
+            sessionStorage['secret_number'] = ''.join(map(str, sample(range(10), 4)))
             res['response']['text'] = 'Привет! Я загадала число из 4 неповторяющихся цифр. Попробуй угадать!'
             return
         if req['request']['original_utterance'] == 'Правила':
