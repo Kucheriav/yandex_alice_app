@@ -45,6 +45,7 @@ def handle_dialog(req, res):
     if req['session']['new']:
         sessionStorage['user_id'] = user_id
         sessionStorage['state'] = "SHOW_MENU"
+        res['response']['text'] = 'Привет'
         res['response']['buttons'] = [
             {'title': 'Играть', 'hide': False},
             {'title': 'Правила', 'hide': False},
