@@ -3,15 +3,18 @@ import logging
 import json
 import os
 from random import sample
-
+from data import db_session
+from data.players import Player
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 
 logging.basicConfig(filename='example.log')
 logging.basicConfig(level=logging.INFO)
 
 sessionStorage = {}
 
+db_session.global_init("db/game.db")
 
 @app.route('/post', methods=['POST'])
 # Функция получает тело запроса и возвращает ответ.
@@ -44,22 +47,52 @@ def handle_dialog(req, res):
 
     if req['session']['new']:
         sessionStorage['user_id'] = user_id
-        sessionStorage['state'] = "SHOW_MENU"
-        res['response']['text'] = 'Привет'
-        res['response']['buttons'] = [
-            {'title': 'Играть', 'hide': False},
-            {'title': 'Правила', 'hide': False},
-            {'title': 'Статистика', 'hide': False},
-            {'title': 'Рекорды', 'hide': False},
-            {'title': 'Завершить', 'hide': False}
-        ]
-        return
+        db_sess = db_session.create_session()
+        player = db_sess.query(Player).filter(Player.id == user_id).first()
+        if player:
+            sessionStorage['state'] = "SHOW_MENU"
+            res['response']['text'] = f'Привет, {player.name}'
+            res['response']['buttons'] = [
+                {'title': 'Играть', 'hide': False},
+                {'title': 'Правила', 'hide': False},
+                {'title': 'Статистика', 'hide': False},
+                {'title': 'Рекорды', 'hide': False},
+                {'title': 'Завершить', 'hide': False}
+            ]
+            return
+        else:
+            sessionStorage['state'] = "NEW_PLAYER"
+            res['response']['text'] = f'Привет, представься, пожалуйста'
+            return
+    if sessionStorage['state'] == "NEW_PLAYER":
+        db_sess = db_session.create_session()
+        player = Player()
+        player.id = user_id
+        player.name = req['request']['original_utterance']
+        try:
+            db_sess.add(player)
+            db_sess.commit()
+        except Exception as ex:
+            res['response']['text'] = ex.__str__()
+            return
+        else:
+            sessionStorage['state'] = "SHOW_MENU"
+            res['response']['text'] = f'Привет, {player.name}'
+            res['response']['buttons'] = [
+                {'title': 'Играть', 'hide': False},
+                {'title': 'Правила', 'hide': False},
+                {'title': 'Статистика', 'hide': False},
+                {'title': 'Рекорды', 'hide': False},
+                {'title': 'Завершить', 'hide': False}
+            ]
+            return
 
     if sessionStorage['state'] == "SHOW_MENU":
         if req['request']['original_utterance'] == 'Играть':
             sessionStorage['state'] = "GAME"
             sessionStorage['round'] = 0
-            sessionStorage['secret_number'] = ''.join(map(str, sample(range(10), 4)))
+            #sessionStorage['secret_number'] = ''.join(map(str, sample(range(10), 4)))
+            sessionStorage['secret_number'] = '1234'
             res['response']['text'] = 'Привет! Я загадала число из 4 неповторяющихся цифр. Попробуй угадать!'
             return
         if req['request']['original_utterance'] == 'Правила':
@@ -98,6 +131,7 @@ def handle_dialog(req, res):
             res['response']['text'] = 'До новых встреч!'
             res['response']['end_session'] = True
             return
+        res['response']['text'] = 'Я вас не поняла'
         return
 
     if sessionStorage['state'] == "GAME":
@@ -140,6 +174,7 @@ def handle_dialog(req, res):
             return
         res['response']['text'] = f'Коровы - {cows}; быки - {bulls}'
         return
+
     res['response']['text'] = 'Я вас не поняла'
     return
 

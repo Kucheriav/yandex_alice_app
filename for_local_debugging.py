@@ -9,8 +9,8 @@ app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 
 def add_player(info):
     player = Player()
-    player.login = info[0]
-    player.hashed_password = hash(info[1])
+    player.id = info[0]
+    player.name = info[1]
     db_sess = db_session.create_session()
     try:
         db_sess.add(player)
@@ -23,7 +23,7 @@ def add_player(info):
 
 def login(info):
     db_sess = db_session.create_session()
-    user = db_sess.query(Player).filter(Player.login == info[0], Player.hashed_password == hash(info[1])).first()
+    user = db_sess.query(Player).filter(Player.id == info[0]).first()
     print(user)
 
 
@@ -32,11 +32,11 @@ def main():
     #app.run()
     answ = input('A u new: y/n')
     if answ == 'y':
-        log_pasw = input('Login passw').split()
-        add_player(log_pasw)
+        id_name = input('id name').split()
+        add_player(id_name)
     else:
-        log_pasw = input('Login passw').split()
-        login(log_pasw)
+        id_name = input('id name').split()
+        login(id_name)
 
 
 
