@@ -106,8 +106,15 @@ def handle_dialog(req, res):
         guess = str(req['request']['original_utterance'])
         bulls = cows = 0
         if req['request']['original_utterance'] == 'Сдаюсь':
-            res['response']['text'] = f'Слабак! Это было число {sessionStorage["secret_number"]}'
-            res['response']['end_session'] = True
+            res['response']['text'] = f'Ну ты даешь! Это было число {sessionStorage["secret_number"]}'
+            sessionStorage['state'] = "SHOW_MENU"
+            res['response']['buttons'] = [
+                {'title': 'Играть', 'hide': False},
+                {'title': 'Правила', 'hide': False},
+                {'title': 'Статистика', 'hide': False},
+                {'title': 'Рекорды', 'hide': False},
+                {'title': 'Завершить', 'hide': False}
+            ]
             return
         if not guess.isdigit():
             res['response']['text'] = 'Не число'
