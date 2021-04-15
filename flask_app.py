@@ -44,12 +44,12 @@ def main():
 
 def handle_dialog(req, res):
     user_id = req['session']['user_id']
-
     if req['session']['new']:
-        sessionStorage['user_id'] = user_id
         db_sess = db_session.create_session()
         player = db_sess.query(Player).filter(Player.id == user_id).first()
+        db_sess.close()
         if player:
+            sessionStorage['player'] = player
             sessionStorage['state'] = "SHOW_MENU"
             res['response']['text'] = f'Привет, {player.name}'
             res['response']['buttons'] = [
@@ -72,10 +72,12 @@ def handle_dialog(req, res):
         try:
             db_sess.add(player)
             db_sess.commit()
+            db_sess.close()
         except Exception as ex:
             res['response']['text'] = ex.__str__()
             return
         else:
+            sessionStorage['player'] = player
             sessionStorage['state'] = "SHOW_MENU"
             res['response']['text'] = f'Привет, {player.name}'
             res['response']['buttons'] = [
@@ -108,7 +110,11 @@ def handle_dialog(req, res):
             ]
             return
         if req['request']['original_utterance'] == 'Статистика':
-            res['response']['text'] = 'Раздел в разработке'
+            pl = sessionStorage['player']
+            res['response']['text'] = f'Игрок - {pl.name}\n' \
+                                      f'Создан - {pl.created_date}\n' \
+                                      f'Игр проведено - {pl.played.games}\n' \
+                                      f'Игр выиграно - {pl.score}'
             res['response']['buttons'] = [
                 {'title': 'Играть', 'hide': False},
                 {'title': 'Правила', 'hide': False},
@@ -149,7 +155,17 @@ def handle_dialog(req, res):
                 {'title': 'Рекорды', 'hide': False},
                 {'title': 'Завершить', 'hide': False}
             ]
-            return
+            sessionStorage['player'].played_games += 1
+            db_sess = db_session.create_session()
+            try:
+                db_sess.merge(sessionStorage['player'])
+                db_sess.commit()
+                db_sess.close()
+            except Exception as ex:
+                res['response']['text'] = ex.__str__()
+                return
+            else:
+                return
         if not guess.isdigit():
             res['response']['text'] = 'Не число'
             return
@@ -171,7 +187,18 @@ def handle_dialog(req, res):
                 {'title': 'Рекорды', 'hide': False},
                 {'title': 'Завершить', 'hide': False}
             ]
-            return
+            sessionStorage['player'].played_games += 1
+            sessionStorage['player'].score += 1
+            db_sess = db_session.create_session()
+            try:
+                db_sess.merge(sessionStorage['player'])
+                db_sess.commit()
+                db_sess.close()
+            except Exception as ex:
+                res['response']['text'] = ex.__str__()
+                return
+            else:
+                return
         res['response']['text'] = f'Коровы - {cows}; быки - {bulls}'
         return
 
