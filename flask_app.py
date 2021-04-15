@@ -6,6 +6,7 @@ from random import sample
 from data import db_session
 from data.players import Player
 
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 
@@ -74,7 +75,8 @@ def handle_dialog(req, res):
             db_sess.commit()
             db_sess.close()
         except Exception as ex:
-            res['response']['text'] = ex.__str__()
+            logging.critical(ex)
+            res['response']['text'] = ex
             return
         else:
             sessionStorage['player'] = player
@@ -111,18 +113,24 @@ def handle_dialog(req, res):
             return
         if req['request']['original_utterance'] == 'Статистика':
             pl = sessionStorage['player']
-            res['response']['text'] = f'Игрок - {pl.name}\n' \
+            try:
+                res['response']['text'] = f'Игрок - {pl.name}\n' \
                                       f'Создан - {pl.created_date}\n' \
                                       f'Игр проведено - {pl.played.games}\n' \
                                       f'Игр выиграно - {pl.score}'
-            res['response']['buttons'] = [
-                {'title': 'Играть', 'hide': False},
-                {'title': 'Правила', 'hide': False},
-                {'title': 'Статистика', 'hide': False},
-                {'title': 'Рекорды', 'hide': False},
-                {'title': 'Завершить', 'hide': False}
-            ]
-            return
+            except Exception as ex:
+                logging.critical(ex)
+                res['response']['text'] = ex
+                return
+            else:
+                res['response']['buttons'] = [
+                    {'title': 'Играть', 'hide': False},
+                    {'title': 'Правила', 'hide': False},
+                    {'title': 'Статистика', 'hide': False},
+                    {'title': 'Рекорды', 'hide': False},
+                    {'title': 'Завершить', 'hide': False}
+                ]
+                return
         if req['request']['original_utterance'] == 'Рекорды':
             res['response']['text'] = 'Раздел в разработке'
             res['response']['buttons'] = [
