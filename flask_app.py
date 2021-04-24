@@ -3,21 +3,16 @@ import logging
 import json
 import os
 from random import sample
-from data import db_session
-from data.players import Player
+
 
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
-basedir = os.path.abspath(os.path.dirname(__file__))
-SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///' + os.path.join(basedir, 'app.db')
 
 logging.basicConfig(filename='example.log')
 logging.basicConfig(level=logging.INFO)
 
 sessionStorage = {}
-
-db_session.global_init(SQLALCHEMY_DATABASE_URI)
 
 @app.route('/post', methods=['POST'])
 # Функция получает тело запроса и возвращает ответ.
@@ -46,15 +41,12 @@ def main():
 
 
 def handle_dialog(req, res):
-    user_id = req['session']['user_id']
+    player = req.get('state')
     if req['session']['new']:
-        db_sess = db_session.create_session()
-        player = db_sess.query(Player).filter(Player.id == user_id).first()
-        db_sess.close()
         if player:
-            sessionStorage['player'] = player
+            sessionStorage['player'] = player['user']
             sessionStorage['state'] = "SHOW_MENU"
-            res['response']['text'] = f'Привет, {player.name}'
+            res['response']['text'] = f'Привет, {sessionStorage["player"]["name"]}'
             res['response']['buttons'] = [
                 {'title': 'Играть', 'hide': False},
                 {'title': 'Правила', 'hide': False},
@@ -68,30 +60,22 @@ def handle_dialog(req, res):
             res['response']['text'] = 'Привет, представься, пожалуйста'
             return
     if sessionStorage['state'] == "NEW_PLAYER":
-        try:
-            db_sess = db_session.create_session()
-            player = Player()
-            player.id = user_id
-            player.name = req['request']['original_utterance']
-            db_sess.add(player)
-            db_sess.commit()
-            db_sess.close()
-        except Exception as ex:
-            logging.critical(ex.text)
-            res['response']['text'] = ex.text
-            return
-        else:
-            sessionStorage['player'] = player
-            sessionStorage['state'] = "SHOW_MENU"
-            res['response']['text'] = f'Привет, {player.name}'
-            res['response']['buttons'] = [
-                {'title': 'Играть', 'hide': False},
-                {'title': 'Правила', 'hide': False},
-                {'title': 'Статистика', 'hide': False},
-                {'title': 'Рекорды', 'hide': False},
-                {'title': 'Завершить', 'hide': False}
-            ]
-            return
+        sessionStorage['player'] = {
+            'name': req['request']['original_utterance'],
+            'games': 0,
+            'score': 0
+        }
+        res['user_state_update'] = sessionStorage['player']
+        sessionStorage['state'] = "SHOW_MENU"
+        res['response']['text'] = f'Привет, {sessionStorage["player"]["name"]}'
+        res['response']['buttons'] = [
+            {'title': 'Играть', 'hide': False},
+            {'title': 'Правила', 'hide': False},
+            {'title': 'Статистика', 'hide': False},
+            {'title': 'Рекорды', 'hide': False},
+            {'title': 'Завершить', 'hide': False}
+        ]
+        return
 
     if sessionStorage['state'] == "SHOW_MENU":
         if req['request']['original_utterance'] == 'Играть':
@@ -101,6 +85,7 @@ def handle_dialog(req, res):
             sessionStorage['secret_number'] = '1234'
             res['response']['text'] = 'Привет! Я загадала число из 4 неповторяющихся цифр. Попробуй угадать!'
             return
+
         if req['request']['original_utterance'] == 'Правила':
             res['response']['text'] = 'Нужно отгадать число из четырех разных цифр. Ты пишешь число, а я говорю ' \
                                       'сколько там "быков" и "коров". "Бык" - цифра встала на свое место. "Корова" -' \
@@ -113,26 +98,24 @@ def handle_dialog(req, res):
                 {'title': 'Завершить', 'hide': False}
             ]
             return
+
         if req['request']['original_utterance'] == 'Статистика':
-            pl = sessionStorage['player']
-            try:
+            if player:
+                pl = player['user']
                 res['response']['text'] = f'Игрок - {pl.name}\n' \
                                       f'Создан - {pl.created_date}\n' \
                                       f'Игр проведено - {pl.played.games}\n' \
                                       f'Игр выиграно - {pl.score}'
-            except Exception as ex:
-                logging.critical(ex)
-                res['response']['text'] = ex
-                return
             else:
-                res['response']['buttons'] = [
-                    {'title': 'Играть', 'hide': False},
-                    {'title': 'Правила', 'hide': False},
-                    {'title': 'Статистика', 'hide': False},
-                    {'title': 'Рекорды', 'hide': False},
-                    {'title': 'Завершить', 'hide': False}
-                ]
-                return
+                res['response']['text'] = 'Неизвестная ошибка: нет информации об игроке'
+            res['response']['buttons'] = [
+                {'title': 'Играть', 'hide': False},
+                {'title': 'Правила', 'hide': False},
+                {'title': 'Статистика', 'hide': False},
+                {'title': 'Рекорды', 'hide': False},
+                {'title': 'Завершить', 'hide': False}
+            ]
+            return
         if req['request']['original_utterance'] == 'Рекорды':
             res['response']['text'] = 'Раздел в разработке'
             res['response']['buttons'] = [
