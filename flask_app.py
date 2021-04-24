@@ -75,8 +75,8 @@ def handle_dialog(req, res):
             db_sess.commit()
             db_sess.close()
         except Exception as ex:
-            logging.critical(ex)
-            res['response']['text'] = ex
+            logging.critical(ex.text)
+            res['response']['text'] = ex.text
             return
         else:
             sessionStorage['player'] = player
