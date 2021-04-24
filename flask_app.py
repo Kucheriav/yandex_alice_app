@@ -47,7 +47,8 @@ def handle_dialog(req, res):
                 {'title': 'Завершить', 'hide': False}
             ]
             #res['user_state_update'] = sessionStorage['player']
-            res['application_state'] = sessionStorage['player']
+            #res['application_state'] = sessionStorage['player']
+            res['application_state'] = {'value': sessionStorage['player']}
             return
         else:
             sessionStorage['state'] = "NEW_PLAYER"
@@ -60,7 +61,8 @@ def handle_dialog(req, res):
             'score': 0
         }
         #res['user_state_update'] = sessionStorage['player']
-        res['application_state'] = sessionStorage['player']
+        # res['application_state'] = sessionStorage['player']
+        res['application_state'] = {'value': sessionStorage['player']}
         sessionStorage['state'] = "SHOW_MENU"
         res['response']['text'] = f'Привет, {sessionStorage["player"]["name"]}'
         res['response']['buttons'] = [
