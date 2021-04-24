@@ -15,15 +15,9 @@ logging.basicConfig(level=logging.INFO)
 sessionStorage = {}
 
 @app.route('/post', methods=['POST'])
-# Функция получает тело запроса и возвращает ответ.
-# Внутри функции доступен request.json - это JSON,
-# который отправила нам Алиса в запросе POST
 def main():
     logging.info(f'Request: {request.json!r}')
 
-    # Начинаем формировать ответ, согласно документации
-    # мы собираем словарь, который потом при помощи
-    # библиотеки json преобразуем в JSON и отдадим Алисе
     response = {
         'session': request.json['session'],
         'version': request.json['version'],
@@ -33,10 +27,7 @@ def main():
     }
 
     handle_dialog(request.json, response)
-
     logging.info(f'Response:  {response!r}')
-
-    # Преобразовываем в JSON и возвращаем
     return json.dumps(response)
 
 
@@ -44,7 +35,8 @@ def handle_dialog(req, res):
     player = req.get('state')
     if req['session']['new']:
         if player:
-            sessionStorage['player'] = player['user']
+            #sessionStorage['player'] = player['user']
+            sessionStorage['player'] = player['application']
             sessionStorage['state'] = "SHOW_MENU"
             res['response']['text'] = f'Привет, {sessionStorage["player"]["name"]}'
             res['response']['buttons'] = [
@@ -54,6 +46,8 @@ def handle_dialog(req, res):
                 {'title': 'Рекорды', 'hide': False},
                 {'title': 'Завершить', 'hide': False}
             ]
+            #res['user_state_update'] = sessionStorage['player']
+            res['application_state'] = sessionStorage['player']
             return
         else:
             sessionStorage['state'] = "NEW_PLAYER"
@@ -65,7 +59,8 @@ def handle_dialog(req, res):
             'games': 0,
             'score': 0
         }
-        res['user_state_update'] = sessionStorage['player']
+        #res['user_state_update'] = sessionStorage['player']
+        res['application_state'] = sessionStorage['player']
         sessionStorage['state'] = "SHOW_MENU"
         res['response']['text'] = f'Привет, {sessionStorage["player"]["name"]}'
         res['response']['buttons'] = [
@@ -84,6 +79,8 @@ def handle_dialog(req, res):
             #sessionStorage['secret_number'] = ''.join(map(str, sample(range(10), 4)))
             sessionStorage['secret_number'] = '1234'
             res['response']['text'] = 'Привет! Я загадала число из 4 неповторяющихся цифр. Попробуй угадать!'
+            # res['user_state_update'] = sessionStorage['player']
+            res['application_state'] = sessionStorage['player']
             return
 
         if req['request']['original_utterance'] == 'Правила':
@@ -97,19 +94,22 @@ def handle_dialog(req, res):
                 {'title': 'Рекорды', 'hide': False},
                 {'title': 'Завершить', 'hide': False}
             ]
-            res['user_state_update'] = sessionStorage['player']
+            # res['user_state_update'] = sessionStorage['player']
+            res['application_state'] = sessionStorage['player']
             return
 
         if req['request']['original_utterance'] == 'Статистика':
             if player:
-                pl = player['user']
+                # pl = player['user']
+                pl = player['application']
                 res['response']['text'] = f'Игрок - {pl.name}\n' \
                                       f'Создан - {pl.created_date}\n' \
                                       f'Игр проведено - {pl.played.games}\n' \
                                       f'Игр выиграно - {pl.score}'
             else:
                 res['response']['text'] = 'Неизвестная ошибка: нет информации об игроке'
-            res['user_state_update'] = sessionStorage['player']
+            # res['user_state_update'] = sessionStorage['player']
+            res['application_state'] = sessionStorage['player']
             res['response']['buttons'] = [
                 {'title': 'Играть', 'hide': False},
                 {'title': 'Правила', 'hide': False},
