@@ -66,11 +66,11 @@ def handle_dialog(req, res):
             res['response']['text'] = 'Привет, представься, пожалуйста'
             return
     if sessionStorage['state'] == "NEW_PLAYER":
-        db_sess = db_session.create_session()
-        player = Player()
-        player.id = user_id
-        player.name = req['request']['original_utterance']
         try:
+            db_sess = db_session.create_session()
+            player = Player()
+            player.id = user_id
+            player.name = req['request']['original_utterance']
             db_sess.add(player)
             db_sess.commit()
             db_sess.close()
