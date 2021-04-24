@@ -9,13 +9,15 @@ from data.players import Player
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
+basedir = os.path.abspath(os.path.dirname(__file__))
+SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///' + os.path.join(basedir, 'app.db')
 
 logging.basicConfig(filename='example.log')
 logging.basicConfig(level=logging.INFO)
 
 sessionStorage = {}
 
-db_session.global_init("db/game.db")
+db_session.global_init(SQLALCHEMY_DATABASE_URI)
 
 @app.route('/post', methods=['POST'])
 # Функция получает тело запроса и возвращает ответ.
