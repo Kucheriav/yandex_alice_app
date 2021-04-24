@@ -97,6 +97,7 @@ def handle_dialog(req, res):
                 {'title': 'Рекорды', 'hide': False},
                 {'title': 'Завершить', 'hide': False}
             ]
+            res['user_state_update'] = sessionStorage['player']
             return
 
         if req['request']['original_utterance'] == 'Статистика':
@@ -108,6 +109,7 @@ def handle_dialog(req, res):
                                       f'Игр выиграно - {pl.score}'
             else:
                 res['response']['text'] = 'Неизвестная ошибка: нет информации об игроке'
+            res['user_state_update'] = sessionStorage['player']
             res['response']['buttons'] = [
                 {'title': 'Играть', 'hide': False},
                 {'title': 'Правила', 'hide': False},
